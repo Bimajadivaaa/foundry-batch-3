@@ -2,35 +2,55 @@
 pragma solidity ^0.8.13;
 
 import {Test, console} from "forge-std/Test.sol";
-import {Counter} from "../src/Counter.sol";
+import {Token} from "../src/Token.sol";
 
-contract CounterTest is Test {
-    Counter public counter;
-    address public alice = makeAddr('alice');
+contract TokenTest is Test {
+    Token public token;
+    address public alice = makeAddr("alice");
 
     function setUp() public {
-        counter = new Counter();
-        counter.setNumber(0);
+        token = new Token();
     }
 
-    function test_Increment() public {
-        counter.increment();
-        assertEq(counter.number(), 1);
+    function test_mint() public {
+        token.mint(address(this), 1000);
+        assertEq(
+            token.balanceOf(address(this)),
+            1000,
+            "balance should be 1000"
+        );
     }
 
-    function testFuzz_SetNumber(uint256 x) public {
-        counter.setNumber(x);
-        assertEq(counter.number(), x);
+    function test_mint_max_supply() public {
+        assertEq(token.MAX_TOTAL_SUPPLY(), 10_000);
+        //Console log total supply
+        // console.log("Total supply: ", token.totalSupply());
+        vm.expectRevert("Max supply exceeded");
+        token.mint(address(this), 8000);
+        console.log("Total supply: ", token.totalSupply());
     }
 
-    function test_setPrice() public {
-        counter.setPrice(100);
-        assertEq(counter.price(), 100, 'price should be 100');
-        console.log("price", counter.price());
+     function test_mint_up_to_max_supply() public {
+        token.mint(address(this), 10_000);
+        assertEq(
+            token.totalSupply(),
+            10_000,
+            "total supply should be 10,000"
+        );
+    }
 
-        vm.prank(alice);
-        vm.expectRevert("Only Owner can set price");
-        counter.setPrice(200);
-        
+    function test_mint_beyond_max_supply() public {
+        token.mint(address(this), 10_000);
+        vm.expectRevert("Max supply exceeded");
+        token.mint(address(this), 1);
+    }
+
+    function test_mint_exact_max_supply() public {
+        token.mint(address(this), 10_000);
+        assertEq(
+            token.totalSupply(),
+            100_000,
+            "total supply should be exactly 10,000"
+        );
     }
 }
